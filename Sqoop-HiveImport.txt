@@ -1,0 +1,24 @@
+Download the data from all tables except 'products' and 'customers' into HIVE
+
+1. Create database and create a few tables with data.
+
+mysql> show tables;
++-----------------+
+| Tables_in_alabs |
++-----------------+
+| customer        | 
+| customers       | 
+| productinfo     | 
+| products        | 
++-----------------+
+
+
+sqoop code to import all tables except products and customers
+-------------------------------------------------
+
+[training@localhost ~]$ sqoop import-all-tables --connect 
+jdbc:mysql://localhost/alabs --username root -P 
+--exclude-tables products,customers --hive-import -m 1
+
+
+The above command imports the tables to hive.

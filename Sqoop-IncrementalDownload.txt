@@ -1,0 +1,83 @@
+Incremental download data for single table in database MYSQL
+
+1. Create a table in MYSQL
+
+mysql> create table productinfo(id int,name varchar(50),price int,PRIMARY KEY(id));
+
+mysql> desc productinfo;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int(11)     | NO   | PRI | 0       |       | 
+| name  | varchar(50) | YES  |     | NULL    |       | 
+| price | int(11)     | YES  |     | NULL    |       | 
++-------+-------------+------+-----+---------+-------+
+
+Add some data into the table.
+
+
+mysql> select * from productinfo;
++----+----------+-------+
+| id | name     | price |
++----+----------+-------+
+|  1 | monitor  | 10000 | 
+|  2 | gpu      | 15000 | 
+|  3 | mouse    |   800 | 
+|  4 | keyboard |   900 | 
++----+----------+-------+
+
+
+2. Import this table to HDFS using SQOOP
+
+[training@localhost ~]$ sqoop import --connect jdbc:mysql://localhost/alabs 
+--username root -P --table productinfo -m 1 --target-dir /workspace/sqoop/sq_incrementaldata
+
+The data is stored into the '/workspace/sqoop/sq_incrementaldata' folder in hdfs.
+
+3. Update the table by adding new values
+
+mysql> select * from productinfo;
++----+--------------+-------+
+| id | name         | price |
++----+--------------+-------+
+|  1 | monitor      | 10000 | 
+|  2 | gpu          | 15000 | 
+|  3 | mouse        |   800 | 
+|  4 | keyboard     |   900 | 
+|  5 | displaypanel |  8000 | 
+|  6 | wifidevice   |  9000 | 
++----+--------------+-------+
+
+
+4. Create a sqoop job to see only updated row(s) in table productinfo
+
+--> Use --incremental append and --check-column option to verify and download the data. 
+
+sqoop job --create incrementaldata -- import --connect 
+jdbc:mysql://localhost/alabs --username root -P --table productinfo 
+-m 1 --incremental append --check-column id --last-value 4 --target-dir /workspace/sqoop/sq_incrementaldata/
+
+
+
+5. Execute the sqoop job
+
+[training@localhost ~]$ sqoop job --exec incrementaldata
+
+6. HDFS Output
+
+[training@localhost ~]$ hadoop fs -ls /workspace/sqoop/sq_incrementaldata/
+Found 5 items
+-rw-r--r--   1 training supergroup          0 2018-04-22 05:41 /workspace/sqoop/sq_incrementaldata/_SUCCESS
+drwxr-xr-x   - training supergroup          0 2018-04-22 05:40 /workspace/sqoop/sq_incrementaldata/_logs
+drwxr-xr-x   - training supergroup          0 2018-04-22 05:56 /workspace/sqoop/sq_incrementaldata/_logs-00000
+-rw-r--r--   1 training supergroup         55 2018-04-22 05:41 /workspace/sqoop/sq_incrementaldata/part-m-00000
+-rw-r--r--   1 training supergroup         38 2018-04-22 05:56 /workspace/sqoop/sq_incrementaldata/part-m-00001
+
+
+The output has only the incremental data from productinfo table
+
+[training@localhost ~]$ hadoop fs -cat /workspace/sqoop/sq_incrementaldata/part-m-00001
+5,displaypanel,8000
+6,wifidevice,9000
+
+

@@ -1,0 +1,2 @@
+1. Design a solution to incrementally download the data from all the tables in a specific project.
+2. Design a solution to download the data from all tables except ''products' and 'customers' tables and load them into Hive.
